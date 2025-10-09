@@ -1,0 +1,345 @@
+syntax = "proto3";
+
+package fhir;
+
+// Common FHIR primitives and datatypes
+message Identifier {
+    optional string system = 1;
+    optional string value = 2;
+    optional string use = 3;
+}
+
+message HumanName {
+    optional string use = 1;
+    optional string text = 2;
+    optional string family = 3;
+    repeated string given = 4;
+    repeated string prefix = 5;
+    repeated string suffix = 6;
+}
+
+message ContactPoint {
+    optional string system = 1;
+    optional string value = 2;
+    optional string use = 3;
+    optional int32 rank = 4;
+}
+
+message Address {
+    optional string use = 1;
+    optional string type = 2;
+    optional string text = 3;
+    repeated string line = 4;
+    optional string city = 5;
+    optional string district = 6;
+    optional string state = 7;
+    optional string postal_code = 8;
+    optional string country = 9;
+}
+
+message CodeableConcept {
+    repeated Coding coding = 1;
+    optional string text = 2;
+}
+
+message Coding {
+    optional string system = 1;
+    optional string code = 2;
+    optional string display = 3;
+    optional string version = 4;
+}
+
+message Reference {
+    optional string reference = 1;
+    optional string type = 2;
+    optional string display = 3;
+}
+
+message Period {
+    optional string start = 1;
+    optional string end = 2;
+}
+
+message Quantity {
+    optional double value = 1;
+    optional string unit = 2;
+    optional string system = 3;
+    optional string code = 4;
+}
+
+message Meta {
+    optional string version_id = 1;
+    optional string last_updated = 2;
+    optional string source = 3;
+}
+
+// Patient Resource
+message Patient {
+    optional string id = 1;
+    optional Meta meta = 2;
+    repeated Identifier identifier = 3;
+    optional bool active = 4;
+    repeated HumanName name = 5;
+    repeated ContactPoint telecom = 6;
+    optional string gender = 7;
+    optional string birth_date = 8;
+    repeated Address address = 9;
+    optional CodeableConcept marital_status = 10;
+}
+
+// Observation Resource
+message Observation {
+    optional string id = 1;
+    optional Meta meta = 2;
+    repeated Identifier identifier = 3;
+    optional string status = 4;
+    optional CodeableConcept code = 5;
+    optional Reference subject = 6;
+    optional string effective_date_time = 7;
+    oneof value {
+        Quantity value_quantity = 8;
+        string value_string = 9;
+        bool value_boolean = 10;
+    }
+}
+
+// Condition Resource
+message Condition {
+    optional string id = 1;
+    optional Meta meta = 2;
+    repeated Identifier identifier = 3;
+    optional CodeableConcept clinical_status = 4;
+    optional CodeableConcept verification_status = 5;
+    optional CodeableConcept code = 6;
+    optional Reference subject = 7;
+    optional string onset_date_time = 8;
+    optional string recorded_date = 9;
+}
+
+// Encounter Resource
+message Encounter {
+    optional string id = 1;
+    optional Meta meta = 2;
+    repeated Identifier identifier = 3;
+    optional string status = 4;
+    optional Coding class = 5;
+    optional Reference subject = 6;
+    optional Period period = 7;
+}
+
+// Request/Response Messages
+
+// Patient operations
+message CreatePatientRequest {
+    Patient patient = 1;
+}
+
+message CreatePatientResponse {
+    Patient patient = 1;
+}
+
+message GetPatientRequest {
+    string id = 1;
+}
+
+message GetPatientResponse {
+    Patient patient = 1;
+}
+
+message UpdatePatientRequest {
+    string id = 1;
+    Patient patient = 2;
+}
+
+message UpdatePatientResponse {
+    Patient patient = 1;
+}
+
+message DeletePatientRequest {
+    string id = 1;
+}
+
+message DeletePatientResponse {
+    bool success = 1;
+}
+
+message SearchPatientsRequest {
+    optional string family = 1;
+    optional string given = 2;
+    optional string gender = 3;
+}
+
+message SearchPatientsResponse {
+    repeated Patient patients = 1;
+}
+
+message GetPatientHistoryRequest {
+    string id = 1;
+}
+
+message GetPatientHistoryResponse {
+    repeated Patient versions = 1;
+}
+
+// Observation operations
+message CreateObservationRequest {
+    Observation observation = 1;
+}
+
+message CreateObservationResponse {
+    Observation observation = 1;
+}
+
+message GetObservationRequest {
+    string id = 1;
+}
+
+message GetObservationResponse {
+    Observation observation = 1;
+}
+
+message UpdateObservationRequest {
+    string id = 1;
+    Observation observation = 2;
+}
+
+message UpdateObservationResponse {
+    Observation observation = 1;
+}
+
+message DeleteObservationRequest {
+    string id = 1;
+}
+
+message DeleteObservationResponse {
+    bool success = 1;
+}
+
+message SearchObservationsRequest {
+    optional string patient = 1;
+    optional string code = 2;
+}
+
+message SearchObservationsResponse {
+    repeated Observation observations = 1;
+}
+
+// Condition operations
+message CreateConditionRequest {
+    Condition condition = 1;
+}
+
+message CreateConditionResponse {
+    Condition condition = 1;
+}
+
+message GetConditionRequest {
+    string id = 1;
+}
+
+message GetConditionResponse {
+    Condition condition = 1;
+}
+
+message UpdateConditionRequest {
+    string id = 1;
+    Condition condition = 2;
+}
+
+message UpdateConditionResponse {
+    Condition condition = 1;
+}
+
+message DeleteConditionRequest {
+    string id = 1;
+}
+
+message DeleteConditionResponse {
+    bool success = 1;
+}
+
+message SearchConditionsRequest {
+    optional string patient = 1;
+    optional string clinical_status = 2;
+}
+
+message SearchConditionsResponse {
+    repeated Condition conditions = 1;
+}
+
+// Encounter operations
+message CreateEncounterRequest {
+    Encounter encounter = 1;
+}
+
+message CreateEncounterResponse {
+    Encounter encounter = 1;
+}
+
+message GetEncounterRequest {
+    string id = 1;
+}
+
+message GetEncounterResponse {
+    Encounter encounter = 1;
+}
+
+message UpdateEncounterRequest {
+    string id = 1;
+    Encounter encounter = 2;
+}
+
+message UpdateEncounterResponse {
+    Encounter encounter = 1;
+}
+
+message DeleteEncounterRequest {
+    string id = 1;
+}
+
+message DeleteEncounterResponse {
+    bool success = 1;
+}
+
+message SearchEncountersRequest {
+    optional string patient = 1;
+    optional string status = 2;
+}
+
+message SearchEncountersResponse {
+    repeated Encounter encounters = 1;
+}
+
+// Service Definitions
+service PatientService {
+    rpc CreatePatient(CreatePatientRequest) returns (CreatePatientResponse);
+    rpc GetPatient(GetPatientRequest) returns (GetPatientResponse);
+    rpc UpdatePatient(UpdatePatientRequest) returns (UpdatePatientResponse);
+    rpc DeletePatient(DeletePatientRequest) returns (DeletePatientResponse);
+    rpc SearchPatients(SearchPatientsRequest) returns (SearchPatientsResponse);
+    rpc GetPatientHistory(GetPatientHistoryRequest) returns (GetPatientHistoryResponse);
+}
+
+service ObservationService {
+    rpc CreateObservation(CreateObservationRequest) returns (CreateObservationResponse);
+    rpc GetObservation(GetObservationRequest) returns (GetObservationResponse);
+    rpc UpdateObservation(UpdateObservationRequest) returns (UpdateObservationResponse);
+    rpc DeleteObservation(DeleteObservationRequest) returns (DeleteObservationResponse);
+    rpc SearchObservations(SearchObservationsRequest) returns (SearchObservationsResponse);
+}
+
+service ConditionService {
+    rpc CreateCondition(CreateConditionRequest) returns (CreateConditionResponse);
+    rpc GetCondition(GetConditionRequest) returns (GetConditionResponse);
+    rpc UpdateCondition(UpdateConditionRequest) returns (UpdateConditionResponse);
+    rpc DeleteCondition(DeleteConditionRequest) returns (DeleteConditionResponse);
+    rpc SearchConditions(SearchConditionsRequest) returns (SearchConditionsResponse);
+}
+
+service EncounterService {
+    rpc CreateEncounter(CreateEncounterRequest) returns (CreateEncounterResponse);
+    rpc GetEncounter(GetEncounterRequest) returns (GetEncounterResponse);
+    rpc UpdateEncounter(UpdateEncounterRequest) returns (UpdateEncounterResponse);
+    rpc DeleteEncounter(DeleteEncounterRequest) returns (DeleteEncounterResponse);
+    rpc SearchEncounters(SearchEncountersRequest) returns (SearchEncountersResponse);
+}

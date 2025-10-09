@@ -1,9 +1,11 @@
 // src/main.rs
 
+mod api;
 mod config;
 mod domain;
 mod repository;
 mod service;
+mod grpc;
 
 use std::sync::Arc;
 use anyhow::Result;
@@ -113,18 +115,43 @@ async fn main() -> Result<()> {
         }
     }
     
-    // TODO: Start Axum web server here (next step)
-    info!("🌐 Web server will be started here (coming in next step)");
-    
-    // Keep the application running
+    // Create and start the Axum web server
+    info!("🌐 Starting web server...");
+    let app = api::create_router(app_state.clone());
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080")
+        .await?;
+
     info!("✅ FHIR Server is ready!");
-    info!("📊 Server listening on http://0.0.0.0:8080");
-    
-    // For now, just wait indefinitely
-    // In the next step, we'll replace this with the Axum server
-    tokio::signal::ctrl_c().await?;
+    info!("📊 HTTP Server listening on http://0.0.0.0:8080");
+
+    // Spawn gRPC server in a separate task
+    let grpc_state = app_state.clone();
+    let grpc_handle = tokio::spawn(async move {
+        if let Err(e) = grpc::start_grpc_server(grpc_state, "0.0.0.0:50051").await {
+            error!("❌ gRPC server error: {}", e);
+        }
+    });
+
+    info!("📡 gRPC Server listening on 0.0.0.0:50051");
+    info!("🎉 All servers running!");
+
+    // Run both servers concurrently
+    tokio::select! {
+        result = axum::serve(listener, app) => {
+            if let Err(e) = result {
+                error!("❌ HTTP server error: {}", e);
+            }
+        }
+        result = grpc_handle => {
+            if let Err(e) = result {
+                error!("❌ gRPC server task error: {}", e);
+            }
+        }
+    }
+
     info!("🛑 Shutting down gracefully...");
-    
+
     Ok(())
 }
 
