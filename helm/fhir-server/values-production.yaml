@@ -1,0 +1,149 @@
+# Production values for fhir-server
+# This configuration is optimized for production deployments
+
+replicaCount: 5
+
+image:
+  repository: your-registry.com/fhir-server
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"
+
+imagePullSecrets:
+  - name: registry-credentials
+
+# High availability with autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 5
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Production resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Strict pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Use external managed PostgreSQL
+postgresql:
+  enabled: false
+
+externalDatabase:
+  host: postgres.prod.example.com
+  port: 5432
+  username: fhir_prod
+  database: fhir_production
+  existingSecret: fhir-db-secret
+  existingSecretPasswordKey: password
+
+# HTTP Ingress with TLS
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: fhir.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: fhir-server-tls
+      hosts:
+        - fhir.example.com
+
+# gRPC Ingress with TLS
+grpcIngress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+  hosts:
+    - host: grpc.fhir.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: fhir-grpc-tls
+      hosts:
+        - grpc.fhir.example.com
+
+# Application configuration
+config:
+  database:
+    maxConnections: 20
+    minConnections: 5
+    connectTimeout: 30
+    idleTimeout: 600
+
+  grpc:
+    tlsEnabled: true
+    tlsCertPath: "/etc/tls/tls.crt"
+    tlsKeyPath: "/etc/tls/tls.key"
+
+  logging:
+    level: "info"
+    format: "json"
+
+# Use existing secrets
+jwtSecret:
+  existingSecret: fhir-jwt-secret
+  key: jwt-secret
+
+grpcTLS:
+  existingSecret: fhir-grpc-tls-certs
+
+# Node affinity for production nodes
+nodeSelector:
+  node-type: production
+
+# Spread pods across availability zones
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - fhir-server
+        topologyKey: topology.kubernetes.io/zone
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - fhir-server
+          topologyKey: kubernetes.io/hostname
+
+# Tolerate production taints
+tolerations:
+  - key: "production"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Prometheus monitoring
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    prometheus: kube-prometheus

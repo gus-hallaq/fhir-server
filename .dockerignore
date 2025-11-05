@@ -1,0 +1,64 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Rust build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Helm charts
+helm/
+
+# Scripts
+scripts/
+
+# Test files
+tests/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Certificates
+certs/
+*.crt
+*.key
+*.pem
+
+# Database
+*.sql
+*.db
+
+# Logs
+*.log
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Docker
+Dockerfile*
+docker-compose.yml
+.dockerignore

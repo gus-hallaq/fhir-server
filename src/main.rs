@@ -13,7 +13,7 @@ use tracing::{info, error};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use domain::resources::observation::ObservationValue;
 
-use config::DatabaseConfig;
+use config::{DatabaseConfig, GrpcConfig};
 use repository::{
     PatientRepository, 
     ObservationRepository, 
@@ -125,15 +125,24 @@ async fn main() -> Result<()> {
     info!("✅ FHIR Server is ready!");
     info!("📊 HTTP Server listening on http://0.0.0.0:8080");
 
+    // Initialize gRPC configuration
+    let grpc_config = GrpcConfig::from_env();
+    let grpc_addr = grpc_config.address();
+    let grpc_tls_enabled = grpc_config.tls_enabled;
+
     // Spawn gRPC server in a separate task
     let grpc_state = app_state.clone();
     let grpc_handle = tokio::spawn(async move {
-        if let Err(e) = grpc::start_grpc_server(grpc_state, "0.0.0.0:50051").await {
+        if let Err(e) = grpc::start_grpc_server(grpc_state, grpc_config).await {
             error!("❌ gRPC server error: {}", e);
         }
     });
 
-    info!("📡 gRPC Server listening on 0.0.0.0:50051");
+    if grpc_tls_enabled {
+        info!("📡 Secure gRPC Server (TLS) listening on {}", grpc_addr);
+    } else {
+        info!("📡 gRPC Server listening on {}", grpc_addr);
+    }
     info!("🎉 All servers running!");
 
     // Run both servers concurrently

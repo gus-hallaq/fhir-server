@@ -3,6 +3,7 @@
 
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::time::Duration;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {
@@ -52,6 +53,53 @@ impl DatabaseConfig {
     }
 }
 
+/// gRPC Server configuration
+#[derive(Debug, Clone)]
+pub struct GrpcConfig {
+    pub host: String,
+    pub port: u16,
+    pub tls_enabled: bool,
+    pub tls_cert_path: Option<PathBuf>,
+    pub tls_key_path: Option<PathBuf>,
+}
+
+impl GrpcConfig {
+    pub fn from_env() -> Self {
+        let tls_enabled = std::env::var("GRPC_TLS_ENABLED")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(false);
+
+        Self {
+            host: std::env::var("GRPC_HOST")
+                .unwrap_or_else(|_| "0.0.0.0".to_string()),
+            port: std::env::var("GRPC_PORT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(50051),
+            tls_enabled,
+            tls_cert_path: if tls_enabled {
+                std::env::var("GRPC_TLS_CERT_PATH")
+                    .ok()
+                    .map(PathBuf::from)
+            } else {
+                None
+            },
+            tls_key_path: if tls_enabled {
+                std::env::var("GRPC_TLS_KEY_PATH")
+                    .ok()
+                    .map(PathBuf::from)
+            } else {
+                None
+            },
+        }
+    }
+
+    pub fn address(&self) -> String {
+        format!("{}:{}", self.host, self.port)
+    }
+}
+
 // ============================================
 // .env file example
 // ============================================
@@ -64,6 +112,13 @@ DB_IDLE_TIMEOUT=600
 
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
+
+# gRPC Configuration
+GRPC_HOST=0.0.0.0
+GRPC_PORT=50051
+GRPC_TLS_ENABLED=false
+GRPC_TLS_CERT_PATH=./certs/server.crt
+GRPC_TLS_KEY_PATH=./certs/server.key
 
 RUST_LOG=info,fhir_server=debug
 */

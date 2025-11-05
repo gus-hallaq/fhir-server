@@ -1,3 +1,5 @@
 /target
 /.claude
 .env
+# Generated gRPC reflection descriptor
+src/grpc/proto_descriptor.bin

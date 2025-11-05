@@ -1,0 +1,128 @@
+🎉 FHIR Server has been deployed!
+
+Chart Name: {{ .Chart.Name }}
+Chart Version: {{ .Chart.Version }}
+App Version: {{ .Chart.AppVersion }}
+Release Name: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+📊 DEPLOYMENT STATUS:
+  Replicas: {{ if .Values.autoscaling.enabled }}{{ .Values.autoscaling.minReplicas }}-{{ .Values.autoscaling.maxReplicas }} (autoscaling enabled){{ else }}{{ .Values.replicaCount }}{{ end }}
+
+🌐 HTTP API SERVICE:
+{{- if .Values.ingress.enabled }}
+  External URL(s):
+  {{- range .Values.ingress.hosts }}
+    - https://{{ .host }}
+  {{- end }}
+{{- else }}
+  To access the HTTP API from outside the cluster:
+
+  {{- if contains "NodePort" .Values.httpService.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "fhir-server.fullname" . }}-http)
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "HTTP API: http://$NODE_IP:$NODE_PORT"
+  {{- else if contains "LoadBalancer" .Values.httpService.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  Watch the status with: kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "fhir-server.fullname" . }}-http
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "fhir-server.fullname" . }}-http --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "HTTP API: http://$SERVICE_IP:{{ .Values.httpService.port }}"
+  {{- else if contains "ClusterIP" .Values.httpService.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "fhir-server.fullname" . }}-http 8080:{{ .Values.httpService.port }}
+  echo "HTTP API: http://127.0.0.1:8080"
+  {{- end }}
+{{- end }}
+
+📡 gRPC SERVICE:
+{{- if .Values.grpcIngress.enabled }}
+  External URL(s):
+  {{- range .Values.grpcIngress.hosts }}
+    - grpcs://{{ .host }}
+  {{- end }}
+{{- else }}
+  To access the gRPC service from outside the cluster:
+
+  {{- if contains "NodePort" .Values.grpcService.type }}
+  export GRPC_NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "fhir-server.fullname" . }}-grpc)
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "gRPC: $NODE_IP:$GRPC_NODE_PORT"
+  {{- else if contains "LoadBalancer" .Values.grpcService.type }}
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  Watch the status with: kubectl get svc --namespace {{ .Release.Namespace }} -w {{ include "fhir-server.fullname" . }}-grpc
+
+  export GRPC_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "fhir-server.fullname" . }}-grpc --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "gRPC: $GRPC_IP:{{ .Values.grpcService.port }}"
+  {{- else if contains "ClusterIP" .Values.grpcService.type }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "fhir-server.fullname" . }}-grpc 50051:{{ .Values.grpcService.port }}
+  echo "gRPC: 127.0.0.1:50051"
+  {{- end }}
+{{- end }}
+
+📋 USEFUL COMMANDS:
+
+  # Check deployment status
+  kubectl get deployments --namespace {{ .Release.Namespace }} {{ include "fhir-server.fullname" . }}
+
+  # View pods
+  kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "fhir-server.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+  # View logs
+  kubectl logs --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "fhir-server.name" . }}" --tail=100 -f
+
+  # Check services
+  kubectl get svc --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}"
+
+{{- if .Values.autoscaling.enabled }}
+  # Check HPA status
+  kubectl get hpa --namespace {{ .Release.Namespace }} {{ include "fhir-server.fullname" . }}
+{{- end }}
+
+{{- if .Values.podDisruptionBudget.enabled }}
+  # Check PodDisruptionBudget
+  kubectl get pdb --namespace {{ .Release.Namespace }} {{ include "fhir-server.fullname" . }}
+{{- end }}
+
+🔐 DATABASE:
+{{- if .Values.postgresql.enabled }}
+  PostgreSQL is deployed with this release.
+
+  Database Name: {{ .Values.postgresql.auth.database }}
+  Username: {{ .Values.postgresql.auth.username }}
+
+  To get the password:
+  export POSTGRES_PASSWORD=$(kubectl get secret --namespace {{ .Release.Namespace }} {{ include "fhir-server.fullname" . }}-postgresql -o jsonpath="{.data.password}" | base64 -d)
+{{- else }}
+  Using external database: {{ .Values.externalDatabase.host }}:{{ .Values.externalDatabase.port }}
+{{- end }}
+
+💡 TESTING:
+
+  # Test HTTP API health endpoint
+  curl http://localhost:8080/health
+
+  # List gRPC services using grpcurl
+  grpcurl -plaintext localhost:50051 list
+
+  # Test gRPC service
+  grpcurl -plaintext localhost:50051 describe fhir.PatientService
+
+📚 DOCUMENTATION:
+  - HTTP API: Available at /api/docs (Swagger UI)
+  - gRPC: Use reflection for service discovery
+  - Metrics: Available at /metrics (if enabled)
+
+⚠️  IMPORTANT NOTES:
+{{- if not .Values.jwtSecret.existingSecret }}
+  - A random JWT secret was generated. To use a custom secret, set jwtSecret.existingSecret
+{{- end }}
+{{- if and (not .Values.postgresql.enabled) (not .Values.externalDatabase.existingSecret) }}
+  - External database password is stored in plaintext in values. Use existingSecret for production!
+{{- end }}
+{{- if .Values.config.grpc.tlsEnabled }}
+  - gRPC TLS is enabled
+{{- else }}
+  - gRPC TLS is disabled. Enable it for production deployments!
+{{- end }}
+
+Happy FHIRing! 🏥

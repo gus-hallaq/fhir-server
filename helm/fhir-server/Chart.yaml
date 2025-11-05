@@ -1,0 +1,17 @@
+apiVersion: v2
+name: fhir-server
+description: A Helm chart for deploying FHIR Server with HTTP and gRPC support
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - fhir
+  - healthcare
+  - grpc
+  - rest-api
+maintainers:
+  - name: FHIR Server Team
+    email: team@example.com
+icon: https://www.hl7.org/fhir/assets/images/fhir-logo-www.png
+sources:
+  - https://github.com/yourusername/fhir-server

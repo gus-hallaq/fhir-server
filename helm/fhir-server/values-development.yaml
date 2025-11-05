@@ -1,0 +1,97 @@
+# Development values for fhir-server
+# This configuration is optimized for local development
+
+replicaCount: 1
+
+image:
+  repository: fhir-server
+  pullPolicy: Never  # Use local images
+  tag: "dev"
+
+# Disable autoscaling for predictable dev environment
+autoscaling:
+  enabled: false
+
+# Minimal resources for development
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Disable PDB for development
+podDisruptionBudget:
+  enabled: false
+
+# Use bundled PostgreSQL
+postgresql:
+  enabled: true
+  auth:
+    username: fhir
+    password: dev-password
+    database: fhir
+  primary:
+    persistence:
+      enabled: true
+      size: 1Gi
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+# Simple ingress for development
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: fhir.dev.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+grpcIngress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: grpc.fhir.dev.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+# Application configuration
+config:
+  database:
+    maxConnections: 5
+    minConnections: 1
+    connectTimeout: 30
+    idleTimeout: 300
+
+  grpc:
+    tlsEnabled: false  # No TLS in dev
+
+  logging:
+    level: "debug"
+    format: "pretty"
+
+# Simple JWT secret for dev
+jwtSecret:
+  value: "dev-secret-key-not-for-production"
+
+# No affinity rules for single node dev cluster
+affinity: {}
+
+# No node selector
+nodeSelector: {}
+
+# No tolerations
+tolerations: []
